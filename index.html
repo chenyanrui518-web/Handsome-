@@ -3,113 +3,185 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>大帥哥官方 - 旗艦雲端商城</title>
+    <title>大帥哥旗艦雲端商城</title>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     <style>
-        :root { --primary: #1976d2; --admin: #d32f2f; --bg: #f8f9fa; }
-        body { font-family: "Microsoft JhengHei", sans-serif; background: var(--bg); margin: 0; padding-bottom: 50px; }
-        #auth-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary); display: flex; justify-content: center; align-items: center; z-index: 2000; }
-        .auth-card { background: white; padding: 30px; border-radius: 20px; width: 300px; text-align: center; }
-        nav { background: var(--primary); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        nav.is-admin { background: var(--admin); }
-        .content { padding: 15px; max-width: 900px; margin: auto; }
-        .page { display: none; }
-        .page.active { display: block; }
-        .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
-        .card { background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: relative; }
-        .p-img { width: 100%; height: 200px; object-fit: cover; background: #eee; }
-        .p-info { padding: 15px; }
-        .p-price { color: var(--admin); font-size: 20px; font-weight: bold; }
-        input, textarea { padding: 12px; border: 1px solid #ddd; border-radius: 8px; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
-        .btn { padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; }
-        .btn-admin { background: var(--admin); color: white; }
+        :root { --p: #1976d2; --a: #d32f2f; --g: #4caf50; --y: #fbc02d; }
+        body { font-family: sans-serif; margin: 0; background: #f0f2f5; padding-bottom: 70px; }
+        nav { background: var(--p); color: white; padding: 12px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
+        nav.is-admin { background: var(--a) !important; }
+        .card { background: white; margin: 12px; padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        .btn { background: var(--p); color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 5px; }
+        .btn-a { background: var(--a); }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px; }
+        .p-card { background: white; border-radius: 12px; overflow: hidden; text-align: center; border: 1px solid #eee; position: relative; }
+        .p-img { width: 100%; height: 120px; object-fit: cover; background: #eee; }
+        .log-item { font-size: 12px; border-bottom: 1px solid #eee; padding: 5px 0; }
     </style>
 </head>
 <body>
 
-<div id="auth-overlay">
-    <div class="auth-card">
-        <h2>💎 大帥哥商城</h2>
-        <input type="text" id="user-input" placeholder="帳號">
-        <input type="password" id="pass-input" placeholder="密碼">
-        <button class="btn" style="background:var(--primary);color:white;" onclick="handleAuth()">進入商店</button>
+<div id="login-ui" style="padding:60px 25px; text-align:center;">
+    <h1 style="color:var(--p);">💎 大帥哥商城</h1>
+    <div class="card">
+        <input id="u" type="text" placeholder="帳號 (新帳號直接輸入)">
+        <input id="p" type="password" placeholder="密碼">
+        <button class="btn" onclick="login()">進入商城 / 快速註冊</button>
     </div>
 </div>
 
-<div id="main-system" style="display: none;">
-    <nav id="top-nav">
-        <div><strong id="display-name"></strong></div>
-        <button style="background:none;border:none;color:white;" onclick="location.reload()">登出</button>
+<div id="main-ui" style="display:none;">
+    <nav id="nb">
+        <div id="un" style="font-weight:bold;">👤 載入中...</div>
+        <div style="font-size: 14px;">🎫 <span id="tk-cnt">0</span> 張</div>
     </nav>
-    <div class="content">
-        <div id="admin-post" style="display:none;" class="card">
-            <h3 style="padding:15px;color:var(--admin)">🚀 官方上架</h3>
-            <div style="padding:0 15px 15px 15px;">
-                <input type="text" id="pName" placeholder="商品名稱">
-                <input type="number" id="pPrice" placeholder="價格">
-                <input type="text" id="pImg" placeholder="圖片網址 (https://...)">
-                <textarea id="pDesc" placeholder="商品詳細介紹..."></textarea>
-                <button class="btn btn-admin" onclick="uploadProduct()">即時發布</button>
-            </div>
+
+    <div style="display:flex; padding:10px 12px; gap:5px;">
+        <button class="btn" style="flex:1;" onclick="showP('home')">🏠 逛逛</button>
+        <button class="btn" style="flex:1;" onclick="showP('lottery')">🎲 抽獎</button>
+        <button class="btn" style="flex:1;" onclick="showP('admin')">🔔 監控</button>
+    </div>
+
+    <div id="page-home">
+        <div id="adm-box" class="card" style="display:none; border: 2px solid var(--a);">
+            <h3 style="margin:0 0 10px 0; color:var(--a);">🚀 官方快速上架</h3>
+            <input id="pN" placeholder="商品名稱">
+            <input id="pP" type="number" placeholder="價格">
+            <input id="pI" placeholder="圖片網址">
+            <button class="btn btn-a" onclick="addP()">即時發布商品</button>
         </div>
-        <div id="product-list" class="product-grid">載入中...</div>
+        <div id="plist" class="grid">讀取中...</div>
+    </div>
+
+    <div id="page-lottery" style="display:none;" class="card">
+        <h2 style="text-align:center; color:var(--y);">🎰 幸運大抽獎</h2>
+        <button class="btn" style="background:var(--g);" onclick="draw()">花費 1 🎫 抽獎</button>
+        <div id="res" style="text-align:center; margin-top:20px; font-weight:bold; font-size:20px; color:var(--a);"></div>
+    </div>
+
+    <div id="page-admin" style="display:none;" class="card">
+        <h3>🔔 即時動態監控 (官方專屬)</h3>
+        <div id="log-list" style="max-height: 300px; overflow-y: auto;">
+            只有管理員可以查看即時訊息...
+        </div>
     </div>
 </div>
 
 <script>
-    const firebaseConfig = { databaseURL: "https://big-handsome-default-rtdb.firebaseio.com/" };
-    firebase.initializeApp(firebaseConfig);
+    const conf = { databaseURL: "https://big-handsome-default-rtdb.asia-southeast1.firebasedatabase.app/" };
+    firebase.initializeApp(conf);
     const db = firebase.database();
+    let me = null;
 
-    function handleAuth() {
-        const u = document.getElementById('user-input').value;
-        const p = document.getElementById('pass-input').value;
-        if(u === "admin" && p === "8888") {
-            document.getElementById('auth-overlay').style.display = 'none';
-            document.getElementById('main-system').style.display = 'block';
-            document.getElementById('admin-post').style.display = 'block';
-            document.getElementById('display-name').innerText = "大帥哥官方";
-            document.getElementById('top-nav').classList.add('is-admin');
-            listenProducts(true);
-        } else if(u) {
-            document.getElementById('auth-overlay').style.display = 'none';
-            document.getElementById('main-system').style.display = 'block';
-            document.getElementById('display-name').innerText = u;
-            listenProducts(false);
+    // 通報功能
+    function sendLog(type, msg) {
+        const time = new Date().toLocaleString('zh-TW', {hour12:false});
+        db.ref('logs').push({
+            u: me ? me.name : '未知',
+            t: type,
+            m: msg,
+            s: time
+        });
+    }
+
+    function login() {
+        const u = document.getElementById('u').value.trim().toLowerCase();
+        const p = document.getElementById('p').value;
+        if(!u || !p) return alert('請填寫完整');
+
+        if(u === 'admin' && p === '8888') {
+            me = { id:'admin', name:'大帥哥官方', role:'admin' };
+            sendLog('系統', '👑 官方店長進入了後台');
+            start();
+        } else {
+            db.ref('users/'+u).once('value', s => {
+                let d = s.val();
+                if(!d) {
+                    d = { id:u, pass:p, name:u, role:'user', tk:5 };
+                    db.ref('users/'+u).set(d);
+                    sendLog('註冊', '🆕 新用戶 ['+u+'] 報到！');
+                }
+                if(d.pass === p) { 
+                    me = d; 
+                    sendLog('登入', '👤 用戶進入了商店');
+                    start(); 
+                } else { alert('密碼錯誤'); }
+            });
         }
     }
 
-    function uploadProduct() {
-        const name = document.getElementById('pName').value;
-        const price = document.getElementById('pPrice').value;
-        const img = document.getElementById('pImg').value || "https://via.placeholder.com/300";
-        const desc = document.getElementById('pDesc').value;
-        if(name && price) {
-            db.ref('products').push({ name, price, img, desc });
-            alert("上架成功！");
+    function start() {
+        document.getElementById('login-ui').style.display = 'none';
+        document.getElementById('main-ui').style.display = 'block';
+        if(me.role === 'admin') {
+            document.getElementById('adm-box').style.display = 'block';
+            document.getElementById('nb').classList.add('is-admin');
+            loadLogs(); // 只有 Admin 會啟動監控讀取
+        }
+        db.ref('users/'+me.id+'/tk').on('value', s => {
+            me.tk = s.val() || 0;
+            document.getElementById('tk-cnt').innerText = me.tk;
+        });
+        document.getElementById('un').innerText = '👤 ' + me.name;
+        loadP();
+    }
+
+    function addP() {
+        const n = document.getElementById('pN').value;
+        const p = document.getElementById('pP').value;
+        const i = document.getElementById('pI').value || 'https://via.placeholder.com/150';
+        if(n && p) {
+            db.ref('products').push({ n, p, i, time: Date.now() }).then(() => {
+                alert('上架成功！');
+                sendLog('上架', '📦 官方上架了：' + n);
+            });
         }
     }
 
-    function listenProducts(isAdmin) {
-        db.ref('products').on('value', snapshot => {
-            const data = snapshot.val();
-            const list = document.getElementById('product-list');
-            list.innerHTML = "";
-            for(let id in data) {
-                const p = data[id];
-                list.innerHTML += `
-                    <div class="card">
-                        <img src="${p.img}" class="p-img">
-                        <div class="p-info">
-                            <div style="font-weight:bold">${p.name}</div>
-                            <div style="font-size:12px;color:#666">${p.desc || ''}</div>
-                            <div class="p-price">$${p.price}</div>
-                            ${isAdmin ? `<button onclick="db.ref('products/${id}').remove()" style="color:red;border:none;background:none;">下架</button>` : ''}
-                        </div>
-                    </div>`;
+    function loadP() {
+        db.ref('products').on('value', s => {
+            const list = document.getElementById('plist');
+            list.innerHTML = '';
+            const data = s.val();
+            for(let k in data) {
+                list.innerHTML += `<div class="p-card"><img class="p-img" src="${data[k].i}"><div style="padding:10px;"><b>${data[k].n}</b><br><span style="color:red;">$${data[k].p}</span><button class="btn" style="padding:5px;font-size:12px;" onclick="buy('${data[k].n}')">購買</button></div></div>`;
             }
         });
+    }
+
+    function buy(n) {
+        if(confirm('確認購買 '+n+'?')) {
+            sendLog('購買', '💰 下單購買了：' + n);
+            alert('購買成功！店長已收到即時通知！');
+        }
+    }
+
+    function draw() {
+        if(me.tk < 1) return alert('券不夠！');
+        const res = ['大獎！','銘謝惠顧','折價券','店長抱抱'];
+        const r = res[Math.floor(Math.random()*res.length)];
+        db.ref('users/'+me.id+'/tk').set(me.tk - 1).then(() => {
+            document.getElementById('res').innerText = r;
+            sendLog('抽獎', '🎲 抽到了：' + r);
+        });
+    }
+
+    function loadLogs() {
+        db.ref('logs').limitToLast(20).on('value', s => {
+            const list = document.getElementById('log-list');
+            list.innerHTML = '';
+            const data = s.val();
+            for(let k in data) {
+                list.innerHTML = `<div class="log-item">[${data[k].s}] <b>${data[k].u}</b> ${data[k].t}: ${data[k].m}</div>` + list.innerHTML;
+            }
+        });
+    }
+
+    function showP(p) {
+        ['home','lottery','admin'].forEach(i => document.getElementById('page-'+i).style.display = 'none');
+        document.getElementById('page-'+p).style.display = 'block';
     }
 </script>
 </body>
